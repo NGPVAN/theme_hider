@@ -1,4 +1,8 @@
 name = Theme Hider
 description = Module to selectively show/hide themes in the admin/build/themes interface.
-version = 6.x-1.0
+version = 6.x-1.2
 core = 6.x
+
+;; Theme Hider module, created by Victor Quinn of NGP VAN. For any questions,
+;; please post an issue to the issue queue on drupal.org:
+;; http://drupal.org/project/issues/1708732?categories=All

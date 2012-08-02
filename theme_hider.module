@@ -24,10 +24,22 @@ function theme_hider_form_alter(&$form, $form_state, $form_id) {
 
       $hidden_themes = variable_get('theme_hider_hidden', array());
       if (!empty($hidden_themes)) {
+        $default_theme = variable_get('theme_default', '');
         foreach ($hidden_themes as $theme) {
-          unset($form[$theme]);
-          unset($form['status']['#options'][$theme]);
-          unset($form['theme_default']['#options']);
+          if ($theme === $default_theme) {
+            // Don't want to hide the default theme, but if it's in the list
+            // of themes to hide, don't allow this user to check or uncheck it.
+            // Unfortunately, have to use JS for this because the D6 FAPI has
+            // no way to disable individual checkboxes.
+            // See: http://drupal.org/node/342316#comment-4732130
+            drupal_add_js("Drupal.behaviors.theme_disable = function() {\$('input[name^=status[{$default_theme}]]').attr('disabled', 'disabled');};", 'inline');
+            unset($form[$theme]['operations']);
+          }
+          else {
+            unset($form[$theme]);
+            unset($form['status']['#options'][$theme]);
+            unset($form['theme_default']['#options'][$theme]);
+          }
         }
       }
       break;
@@ -58,12 +70,15 @@ function theme_hider_menu() {
 
 function theme_hider_settings_form() {
   drupal_add_js(drupal_get_path('module', 'theme_hider') . '/theme_hider.js');
+  $current_default = variable_get('theme_default', '');
 
   $form = array();
   $themes = db_query("SELECT * FROM {system} WHERE type='theme' ORDER BY name ASC");
   while($theme = db_fetch_object($themes)) {
     $info = unserialize($theme->info);
-    $options[$theme->name] = t($info['name']);
+
+    $options[$theme->name] = t($info['name']) .
+      (($theme->name == $current_default) ? "<em>(" . t("current default") . ")</em>" : "");
   }
 
   $defaults = array();
@@ -77,9 +92,10 @@ function theme_hider_settings_form() {
     l('Uncheck all', '', array('fragment' => ' ', 'external' => TRUE, 'attributes' => array('id' => 'theme-hider-uncheck-all')));
 
   $form['theme_hider_hidden'] = array(
-    '#suffix' => $check_all,
+    '#prefix' => $check_all,
     '#type' => 'checkboxes',
     '#title' => t("Themes to hide on !link", array('!link' => l('admin/build/themes', 'admin/build/themes'))),
+    '#description' => t("Note, you cannot hide the default theme, so if that is checked below, users will still see it."),
     '#options' => $options,
   );
   if (!empty($defaults)) {

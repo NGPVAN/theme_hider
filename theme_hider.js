@@ -10,5 +10,5 @@
         $(this).attr('checked', false);
       });
     });
-  };  
+  };
 }(jQuery));
