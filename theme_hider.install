@@ -1,0 +1,14 @@
+<?php
+
+/**
+ * @file
+ * Install the Theme Hider module.
+ */
+
+/**
+ * Clean up after the Theme Hider module to be a good Drupalite ;)
+ */
+function theme_hider_uninstall() {
+  variable_del('theme_hider_hidden');
+  variable_del('theme_hider_allow_admin');
+}

@@ -1,0 +1,90 @@
+<?php
+
+/**
+ * @file
+ * Main module file for the Theme Hider module
+ */
+
+/**
+ * Implements hook_form_alter().
+ *
+ * The main juice of this module, hides themes flagged as hidden in the admin
+ * form.
+ */
+function theme_hider_form_alter(&$form, $form_state, $form_id) {
+  switch ($form_id) {
+    case 'system_themes_form':
+      if (user_access('administer theme hider')) {
+        if (variable_get('theme_hider_allow_admin', FALSE)) {
+          // If this user has permissions and the setting to allow them to see
+          // all themes is on, don't modify anything.
+          return;
+        }
+      }
+
+      $hidden_themes = variable_get('theme_hider_hidden', array());
+      if (!empty($hidden_themes)) {
+        foreach ($hidden_themes as $theme) {
+          unset($form[$theme]);
+          unset($form['status']['#options'][$theme]);
+          unset($form['theme_default']['#options']);
+        }
+      }
+      break;
+  }
+}
+
+/**
+ * Implements hook_perm().
+ */
+function theme_hider_perm() {
+  return array('administer theme hider');
+}
+
+/**
+ * Implements hook_menu().
+ */
+function theme_hider_menu() {
+  $items['admin/settings/theme_hider'] = array(
+    'title' => t("Theme Hider"),
+    'description' => t("Allows an admin user to filter the list of themes viewable by other users"),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('theme_hider_settings_form'),
+    'type' => MENU_NORMAL_ITEM,
+    'access arguments' => array('administer theme hider'),
+  );
+  return $items;
+}
+
+function theme_hider_settings_form() {
+  drupal_add_js(drupal_get_path('module', 'theme_hider') . '/theme_hider.js');
+
+  $form = array();
+  $themes = db_query("SELECT * FROM {system} WHERE type='theme' ORDER BY name ASC");
+  while($theme = db_fetch_object($themes)) {
+    $info = unserialize($theme->info);
+    $options[$theme->name] = t($info['name']);
+  }
+
+  foreach (variable_get('theme_hider_hidden', array()) as $key => $value) {
+    if (!empty($value))
+      $defaults[] = $key;
+  }
+
+  $check_all = l('Check all', '', array('fragment' => ' ', 'external' => TRUE, 'attributes' => array('id' => 'theme-hider-check-all'))) . ' | ' .
+    l('Uncheck all', '', array('fragment' => ' ', 'external' => TRUE, 'attributes' => array('id' => 'theme-hider-uncheck-all')));
+  $form['theme_hider_hidden'] = array(
+    '#suffix' => $check_all,
+    '#type' => 'checkboxes',
+    '#default_value' => $defaults,
+    '#title' => t("Themes to hide on !link", array('!link' => l('admin/build/themes', 'admin/build/themes'))),
+    '#options' => $options,
+  );
+
+  $form['theme_hider_allow_admin'] = array(
+    '#type' => 'checkbox',
+    '#title' => t("Allow users with %perms permission to see all themes", array('%perms' => 'administer theme hider')),
+    '#default_value' => variable_get('theme_hider_allow_admin', FALSE),
+  );
+  return system_settings_form($form);
+}
