@@ -66,20 +66,25 @@ function theme_hider_settings_form() {
     $options[$theme->name] = t($info['name']);
   }
 
+  $defaults = array();
   foreach (variable_get('theme_hider_hidden', array()) as $key => $value) {
-    if (!empty($value))
+    if (!empty($value)) {
       $defaults[] = $key;
+    }
   }
 
   $check_all = l('Check all', '', array('fragment' => ' ', 'external' => TRUE, 'attributes' => array('id' => 'theme-hider-check-all'))) . ' | ' .
     l('Uncheck all', '', array('fragment' => ' ', 'external' => TRUE, 'attributes' => array('id' => 'theme-hider-uncheck-all')));
+
   $form['theme_hider_hidden'] = array(
     '#suffix' => $check_all,
     '#type' => 'checkboxes',
-    '#default_value' => $defaults,
     '#title' => t("Themes to hide on !link", array('!link' => l('admin/build/themes', 'admin/build/themes'))),
     '#options' => $options,
   );
+  if (!empty($defaults)) {
+    $form['theme_hider_hidden']['#default_value'] = $defaults;
+  }
 
   $form['theme_hider_allow_admin'] = array(
     '#type' => 'checkbox',
